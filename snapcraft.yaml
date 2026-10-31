@@ -24,14 +24,6 @@ assumes:
   - snapd2.63
 
 parts:
-  mbr:
-    source: legacy-bios
-    plugin: make
-    override-build: |
-      if [ "${CRAFT_ARCH_BUILD_FOR}" != amd64 ]; then
-          exit
-      fi
-      craftctl default
   boot-assets:
     plugin: nil
     build-packages:
@@ -87,7 +79,11 @@ parts:
   gadget:
     plugin: nil
     source: gadget
-    override-build:
+    override-build: |
       # We need to install directly in the project dir as snapcraft checks there
       # for gadget.yaml instead of looking first at the prime folder.
       install -m 644 gadget-"${CRAFT_ARCH_BUILD_FOR}".yaml "${CRAFT_PROJECT_DIR}"/gadget.yaml
+      # the A/B boot logic, which gadget.yaml puts on the ESP as EFI/ubuntu/grub.cfg
+      if [ "${CRAFT_ARCH_BUILD_FOR}" = amd64 ]; then
+          install -m 644 grub-ab.cfg "${CRAFT_PART_INSTALL}"/grub.cfg
+      fi
