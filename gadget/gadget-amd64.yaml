@@ -12,6 +12,9 @@
 # the ESP, for the journal. ubuntu-seed holds no recovery systems: the other
 # slot is the fallback, and the seed carries only what the first boot needs.
 #
+# The slot roles need a snapd that knows them, on the build host for
+# prepare-image to write the slot images, and on the device to read this file.
+#
 # UEFI only, so there is no BIOS Boot partition and no MBR boot code.
 volumes:
   pc:
@@ -40,17 +43,21 @@ volumes:
           - source: shim.efi.signed
             target: EFI/boot/bootx64.efi
       - name: ubuntu-system-a
+        role: system-slot-a
         type: 20117F86-E985-4357-B9EE-374BC1D8487D
         # the kernel snap alone is about 210M, the base, snapd and the gadget
         # about 130M together, and a refresh may grow any of them
         size: 1G
       - name: ubuntu-system-b
+        role: system-slot-b
         type: 20117F86-E985-4357-B9EE-374BC1D8487D
         size: 1G
       - name: ubuntu-apps-a
+        role: apps-slot-a
         type: 20117F86-E985-4357-B9EE-374BC1D8487D
         size: 512M
       - name: ubuntu-apps-b
+        role: apps-slot-b
         type: 20117F86-E985-4357-B9EE-374BC1D8487D
         size: 512M
       - name: ubuntu-boot
