@@ -1,6 +1,24 @@
+# The Ubuntu Core mini A/B layout, booted by grub on UEFI: the arm64 twin of
+# gadget-amd64.yaml, with the same structures and the same grub-ab.cfg.
+#
+# The same schema as the U-Boot reference gadget (imx-gadget, the *-lite
+# branches): two system slots and two apps slots, each a raw partition holding a
+# nested GPT with one partition per snap and a trailing snap-meta partition. The
+# apps slots are encrypted on the first boot.
+#
+# What differs from U-Boot is where the bootloader finds the kernel. grub cannot
+# read a snap inside a slot's nested GPT, so each slot's kernel.efi is extracted
+# to ubuntu-seed, which is the ESP, as EFI/ubuntu/slot-<a|b>/kernel.efi. The
+# grub environment is EFI/ubuntu/grubenv on ubuntu-boot (ext4) rather than on
+# the ESP, for the journal. ubuntu-seed holds no recovery systems: the other
+# slot is the fallback, and the seed carries only what the first boot needs.
+#
+# The slot roles need a snapd that knows them, on the build host for
+# prepare-image to write the slot images, and on the device to read this file.
+#
+# UEFI only, so there is no BIOS Boot partition and no MBR boot code.
 volumes:
   pc:
-    # bootloader configuration is shipped and managed by snapd
     schema: gpt
     bootloader: grub
     structure:
@@ -8,11 +26,10 @@ volumes:
         role: system-seed
         filesystem: vfat
         # UEFI will boot the ESP partition by default first
-        type: EF,C12A7328-F81F-11D2-BA4B-00A0C93EC93B
-        # Size of around two seeds to allow for remodeling
-        size: 1200M
-        update:
-          edition: 3
+        type: C12A7328-F81F-11D2-BA4B-00A0C93EC93B
+        # shim and grub, two kernel.efi, and the first boot's preseed data. A UKI
+        # holds the arm64 kernel uncompressed, so it is far larger than on amd64
+        size: 512M
         content:
           - source: grubaa64.efi
             target: EFI/ubuntu/grubaa64.efi
@@ -20,29 +37,43 @@ volumes:
             target: EFI/ubuntu/shimaa64.efi
           - source: boot.csv
             target: EFI/ubuntu/bootaa64.csv
+          - source: grub.cfg
+            target: EFI/ubuntu/grub.cfg
           - source: fb.efi
             target: EFI/boot/fbaa64.efi
           - source: shim.efi.signed
             target: EFI/boot/bootaa64.efi
+      - name: ubuntu-system-a
+        role: system-slot-a
+        type: 20117F86-E985-4357-B9EE-374BC1D8487D
+        # the kernel snap alone is about 210M, the base, snapd and the gadget
+        # about 130M together, and a refresh may grow any of them
+        size: 1G
+      - name: ubuntu-system-b
+        role: system-slot-b
+        type: 20117F86-E985-4357-B9EE-374BC1D8487D
+        size: 1G
+      - name: ubuntu-apps-a
+        role: apps-slot-a
+        type: 20117F86-E985-4357-B9EE-374BC1D8487D
+        size: 512M
+      - name: ubuntu-apps-b
+        role: apps-slot-b
+        type: 20117F86-E985-4357-B9EE-374BC1D8487D
+        size: 512M
       - name: ubuntu-boot
         role: system-boot
         filesystem: ext4
-        type: 83,0FC63DAF-8483-4772-8E79-3D69D8477DE4
-        # Around 300M would be enough, but keeping as is to allow
-        # remodeling from previous releases
-        size: 750M
-        update:
-          edition: 1
-        content:
-          - source: grubaa64.efi
-            target: EFI/boot/grubaa64.efi
+        type: 0FC63DAF-8483-4772-8E79-3D69D8477DE4
+        # the grub environment only, the kernels are on ubuntu-seed
+        size: 16M
       - name: ubuntu-save
         role: system-save
         filesystem: ext4
-        type: 83,0FC63DAF-8483-4772-8E79-3D69D8477DE4
+        type: 0FC63DAF-8483-4772-8E79-3D69D8477DE4
         size: 32M
       - name: ubuntu-data
         role: system-data
         filesystem: ext4
-        type: 83,0FC63DAF-8483-4772-8E79-3D69D8477DE4
+        type: 0FC63DAF-8483-4772-8E79-3D69D8477DE4
         size: 1G
