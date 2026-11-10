@@ -70,6 +70,21 @@ parts:
       install -m 644 "${fb_path}" "${CRAFT_PART_INSTALL}/fb.efi"
       install -m 644 "${bootcsv_path}" "${CRAFT_PART_INSTALL}/boot.csv"
 
+      # Add a signature with the snakeoil key ovmf-generic ships, which its
+      # OVMF_VARS_4M.snakeoil.fd enrolls as PK, KEK and db, and AAVMF_VARS.snakeoil.fd
+      # of qemu-efi-aarch64 too, so that the gadget boots qemu with Secure Boot
+      # enforcing. shim keeps its Microsoft signatures, and firmware accepts an
+      # image any one of its signatures verifies, so nothing changes on a machine
+      # that does not trust the snakeoil key. grub needs no extra signature: shim
+      # verifies it against the Canonical certificate it embeds. The package
+      # encrypts the key with the passphrase its README.Debian publishes, 'snakeoil'
+      snakeoil_key="${CRAFT_PART_BUILD}/snakeoil.key"
+      snakeoil_cert=/usr/share/ovmf/PkKek-1-snakeoil.pem
+      openssl pkey -in /usr/share/ovmf/PkKek-1-snakeoil.key -passin pass:snakeoil -out "${snakeoil_key}"
+      sbsign --key "${snakeoil_key}" --cert "${snakeoil_cert}" \
+          --output "${CRAFT_PART_INSTALL}"/shim.efi.signed "${CRAFT_PART_INSTALL}"/shim.efi.signed
+      sbverify --cert "${snakeoil_cert}" "${CRAFT_PART_INSTALL}"/shim.efi.signed
+
       # Remove all the bits we do not need, keeping changelogs and copyrights
       # (using organize/prime is not possible due to different names per arch - x64/aa64)
       find "${CRAFT_PART_INSTALL}"/ -type f,l \
