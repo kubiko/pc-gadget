@@ -102,3 +102,8 @@ parts:
       install -m 644 gadget-"${CRAFT_ARCH_BUILD_FOR}".yaml "${CRAFT_PROJECT_DIR}"/gadget.yaml
       # the A/B boot logic, which gadget.yaml puts on the ESP as EFI/ubuntu/grub.cfg
       install -m 644 grub-ab.cfg "${CRAFT_PART_INSTALL}"/grub.cfg
+
+  device-config:
+    plugin: nil
+    override-build: |
+      mkdir -p "${CRAFT_PART_INSTALL}/device-config"
