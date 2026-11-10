@@ -1,5 +1,5 @@
 name: pc
-version: '26-0.1'
+version: '26-0.1-mini'
 type: gadget
 base: core26
 summary: PC gadget for generic devices
