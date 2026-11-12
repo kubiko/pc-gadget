@@ -2,3 +2,6 @@ parts/
 prime/
 stage/
 pc_*.snap
+# gadgets are stored under gadget/ with per architecture version
+# this is build time copy for the target arch
+gadget.yaml
